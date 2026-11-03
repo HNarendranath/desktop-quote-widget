@@ -27,6 +27,7 @@ internal sealed class WidgetHost : IDisposable
     private readonly QuoteFetcher _fetcher = new(QuoteSourceCatalog.All);
     private readonly IReadOnlyList<Quote> _starter = LoadStarterQuotes();
     private readonly DispatcherTimer _timer = new(DispatcherPriority.Normal);
+    private readonly DispatcherTimer _trimTimer = new(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(4) };
     private readonly HostWindow _host = new();
     private readonly TrayIcon _tray;
 
@@ -51,6 +52,7 @@ internal sealed class WidgetHost : IDisposable
         _rotator = new QuoteRotator(_state.Rotation);
 
         _timer.Tick += (_, _) => OnTimer();
+        _trimTimer.Tick += (_, _) => TrimMemory();
         _tray = new TrayIcon(_host.Handle);
 
         _host.TrayEvent += OnTrayEvent;
@@ -74,6 +76,7 @@ internal sealed class WidgetHost : IDisposable
         CreateWindow();
         UpdateIndicators();
         Schedule();
+        RequestMemoryTrim();
         DelayedFirstFetch();
     }
 
@@ -122,6 +125,7 @@ internal sealed class WidgetHost : IDisposable
         if (_rotator.Tick(Pools, Options, DateTimeOffset.Now))
         {
             _window.SetQuote(_state.Rotation.Current, animate: true);
+            RequestMemoryTrim();
         }
         SaveState();
         UpdateIndicators();
@@ -149,6 +153,7 @@ internal sealed class WidgetHost : IDisposable
         if (_rotator.Next(Pools, Options, DateTimeOffset.Now))
         {
             _window.SetQuote(_state.Rotation.Current, animate: true);
+            RequestMemoryTrim();
         }
         AfterChange();
         _ = FetchIfNeededAsync();
@@ -345,6 +350,7 @@ internal sealed class WidgetHost : IDisposable
         }
 
         AfterChange();
+        RequestMemoryTrim();
         _ = FetchIfNeededAsync();
     }
 
@@ -383,6 +389,7 @@ internal sealed class WidgetHost : IDisposable
             QuoteFetcher.Merge(_cache, quotes);
             _store.SaveCache(_cache);
             SaveState();
+            RequestMemoryTrim();
         }
         catch (IOException ex)
         {
@@ -392,6 +399,25 @@ internal sealed class WidgetHost : IDisposable
         {
             _fetching = false;
         }
+    }
+
+    /// <summary>
+    /// The widget is idle almost all the time, so once a burst of work has settled it hands
+    /// its unused memory back to Windows. Restarting the one-shot timer groups rapid changes.
+    /// </summary>
+    private void RequestMemoryTrim()
+    {
+        _trimTimer.Stop();
+        _trimTimer.Start();
+    }
+
+    private void TrimMemory()
+    {
+        _trimTimer.Stop();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        SetProcessWorkingSetSize(GetCurrentProcess(), -1, -1);
     }
 
     private void PlaceWindow()
@@ -458,6 +484,7 @@ internal sealed class WidgetHost : IDisposable
     public void Dispose()
     {
         _timer.Stop();
+        _trimTimer.Stop();
         _tray.Dispose();
         _host.Dispose();
     }
@@ -470,6 +497,13 @@ internal sealed class WidgetHost : IDisposable
         public int Right;
         public int Bottom;
     }
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetProcessWorkingSetSize(IntPtr process, nint minimum, nint maximum);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

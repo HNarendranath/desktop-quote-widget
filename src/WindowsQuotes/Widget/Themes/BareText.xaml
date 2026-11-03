@@ -5,5 +5,5 @@
     <CornerRadius x:Key="CardCorner">12</CornerRadius>
     <SolidColorBrush x:Key="QuoteBrush" Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="AuthorBrush" Color="#E6FFFFFF" />
-    <DropShadowEffect x:Key="TextShadow" BlurRadius="10" ShadowDepth="1" Opacity="0.7" Color="Black" />
+    <DropShadowEffect x:Key="TextShadow" BlurRadius="8" ShadowDepth="1" Opacity="0.9" Color="Black" />
 </ResourceDictionary>
