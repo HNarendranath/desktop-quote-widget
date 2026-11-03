@@ -8,30 +8,95 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         ShowActivated="False"
-        Background="Transparent">
-    <Border x:Name="Root" Padding="28,24">
-        <StackPanel>
-            <TextBlock x:Name="QuoteText"
-                       FontFamily="Sitka Display, Georgia"
-                       FontSize="28"
-                       Foreground="White"
-                       TextWrapping="Wrap"
-                       TextOptions.TextFormattingMode="Ideal"
-                       Text="We need never be ashamed of our tears.">
-                <TextBlock.Effect>
-                    <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.65" Color="Black" />
-                </TextBlock.Effect>
-            </TextBlock>
-            <TextBlock x:Name="AuthorText"
-                       Margin="0,12,0,0"
-                       FontFamily="Sitka Text, Georgia"
-                       FontSize="15"
-                       Foreground="#E6FFFFFF"
-                       Text="Charles Dickens">
-                <TextBlock.Effect>
-                    <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.65" Color="Black" />
-                </TextBlock.Effect>
-            </TextBlock>
-        </StackPanel>
-    </Border>
+        Focusable="False"
+        Background="Transparent"
+        MouseEnter="OnMouseEnterWidget"
+        MouseLeave="OnMouseLeaveWidget"
+        MouseLeftButtonDown="OnLeftButtonDown"
+        MouseRightButtonUp="OnRightButtonUp">
+    <Window.Resources>
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="2,0,0,0" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" Background="#01000000" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#38FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#58FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Border x:Name="Card"
+                Background="{DynamicResource CardBrush}"
+                CornerRadius="{DynamicResource CardCorner}"
+                Padding="28,24">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock x:Name="QuoteLine"
+                           FontFamily="Sitka Display, Georgia"
+                           FontSize="28"
+                           Foreground="{DynamicResource QuoteBrush}"
+                           Effect="{DynamicResource TextShadow}"
+                           TextWrapping="Wrap"
+                           TextOptions.TextFormattingMode="Ideal" />
+
+                <!-- Fixed minimum height, so the buttons have room even when there's no author. -->
+                <Grid Grid.Row="1" Margin="0,10,0,0" MinHeight="30">
+                    <TextBlock x:Name="AuthorLine"
+                               FontFamily="Sitka Text, Georgia"
+                               FontSize="15"
+                               VerticalAlignment="Center"
+                               Margin="0,0,136,0"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AuthorBrush}"
+                               Effect="{DynamicResource TextShadow}" />
+
+                    <StackPanel x:Name="Buttons"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Opacity="0"
+                                IsHitTestVisible="False"
+                                Effect="{DynamicResource TextShadow}">
+                        <Button x:Name="FavouriteButton" Style="{StaticResource IconButton}" Click="OnFavouriteClick" ToolTip="Save to My Quotes" Content="&#xE734;" />
+                        <Button x:Name="CopyButton" Style="{StaticResource IconButton}" Click="OnCopyClick" ToolTip="Copy" Content="&#xE8C8;" />
+                        <Button x:Name="HoldButton" Style="{StaticResource IconButton}" Click="OnHoldClick" ToolTip="Hold this quote" Content="&#xE718;" />
+                        <Button x:Name="NextButton" Style="{StaticResource IconButton}" Click="OnNextClick" ToolTip="Next quote" Content="&#xE893;" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Rectangle x:Name="MoveOutline"
+                   Visibility="Collapsed"
+                   IsHitTestVisible="False"
+                   Stroke="White"
+                   StrokeThickness="1.5"
+                   StrokeDashArray="5 4"
+                   RadiusX="12"
+                   RadiusY="12" />
+    </Grid>
 </Window>

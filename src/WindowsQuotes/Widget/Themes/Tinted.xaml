@@ -1,0 +1,8 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="CardBrush" Color="#C4141418" />
+    <CornerRadius x:Key="CardCorner">14</CornerRadius>
+    <SolidColorBrush x:Key="QuoteBrush" Color="#FFF5F5F7" />
+    <SolidColorBrush x:Key="AuthorBrush" Color="#CCF5F5F7" />
+    <x:Null x:Key="TextShadow" />
+</ResourceDictionary>

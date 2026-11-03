@@ -1,0 +1,9 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- The blur and its tint come from the window itself. See Backdrop.cs. -->
+    <SolidColorBrush x:Key="CardBrush" Color="Transparent" />
+    <CornerRadius x:Key="CardCorner">0</CornerRadius>
+    <SolidColorBrush x:Key="QuoteBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="AuthorBrush" Color="#E6FFFFFF" />
+    <DropShadowEffect x:Key="TextShadow" BlurRadius="6" ShadowDepth="0" Opacity="0.45" Color="Black" />
+</ResourceDictionary>

@@ -1,0 +1,9 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Nearly invisible, but enough for the whole widget to register hover and clicks. -->
+    <SolidColorBrush x:Key="CardBrush" Color="#01000000" />
+    <CornerRadius x:Key="CardCorner">12</CornerRadius>
+    <SolidColorBrush x:Key="QuoteBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="AuthorBrush" Color="#E6FFFFFF" />
+    <DropShadowEffect x:Key="TextShadow" BlurRadius="10" ShadowDepth="1" Opacity="0.7" Color="Black" />
+</ResourceDictionary>

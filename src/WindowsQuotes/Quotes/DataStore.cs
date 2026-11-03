@@ -65,7 +65,15 @@ public sealed class DataStore
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WindowsQuotes"));
 
     public AppSettings LoadSettings() => Locked(() => Read(SettingsFile, DataJsonContext.Default.AppSettings) ?? new AppSettings());
-    public void SaveSettings(AppSettings value) => Locked(() => Write(SettingsFile, value, DataJsonContext.Default.AppSettings));
+
+    /// <summary>Reads, changes and saves settings as one step, so the two processes can't undo each other's changes.</summary>
+    public AppSettings UpdateSettings(Action<AppSettings> change) => Locked(() =>
+    {
+        var settings = Read(SettingsFile, DataJsonContext.Default.AppSettings) ?? new AppSettings();
+        change(settings);
+        Write(SettingsFile, settings, DataJsonContext.Default.AppSettings);
+        return settings;
+    });
 
     public List<Quote> LoadOwnQuotes() => Locked(() => Read(OwnQuotesFile, DataJsonContext.Default.ListQuote) ?? []);
 

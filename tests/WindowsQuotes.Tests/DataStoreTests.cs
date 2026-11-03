@@ -26,17 +26,16 @@ public sealed class DataStoreTests : IDisposable
     [Fact]
     public void Settings_round_trip()
     {
-        var settings = new AppSettings
+        _store.UpdateSettings(settings =>
         {
-            Look = WidgetLook.Frosted,
-            Controls = WidgetControls.TrayOnly,
-            IntervalMinutes = 240,
-            OwnShare = 0.25,
-            Monitor = @"\\.\DISPLAY2",
-        };
-        settings.Positions[@"\\.\DISPLAY2"] = new WidgetPosition(10, 20);
-        settings.DisabledSources.Add("favqs");
-        _store.SaveSettings(settings);
+            settings.Look = WidgetLook.Frosted;
+            settings.Controls = WidgetControls.TrayOnly;
+            settings.IntervalMinutes = 240;
+            settings.OwnShare = 0.25;
+            settings.Monitor = @"\\.\DISPLAY2";
+            settings.Positions[@"\\.\DISPLAY2"] = new WidgetPosition(10, 20);
+            settings.DisabledSources.Add("favqs");
+        });
 
         var loaded = _store.LoadSettings();
         Assert.Equal(WidgetLook.Frosted, loaded.Look);
