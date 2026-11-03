@@ -13,6 +13,7 @@ public partial class WidgetWindow : Window
     private const double BaseQuoteSize = 28;
     private const double BaseAuthorSize = 15;
     private const int AnimationFrameRate = 30;
+    private const int DragThresholdPixels = 4;
 
     private const string PinGlyph = "";
     private const string PinnedGlyph = "";
@@ -30,6 +31,9 @@ public partial class WidgetWindow : Window
     private bool _moveMode;
     private DesktopPinner? _pinner;
     private Quote? _quote;
+    private bool _pressed;
+    private (int X, int Y) _pressCursor;
+    private PixelRect _pressRect;
 
     /// <param name="debugFloat">Float above other windows instead of pinning, so a look can be checked without clearing the desktop.</param>
     public WidgetWindow(WidgetLook look, WidgetControls controls, double textScale, bool debugFloat = false)
@@ -55,11 +59,17 @@ public partial class WidgetWindow : Window
     public event Action? NextRequested;
     public event Action? HoldMenuRequested;
     public event Action? CopyRequested;
-    public event Action? FavouriteRequested;
+    public event Action? StarRequested;
     public event Action? ContextMenuRequested;
     public event Action? Moved;
 
     public IntPtr Handle => new WindowInteropHelper(this).Handle;
+
+    /// <summary>True while the user is dragging, when the widget should go where the mouse goes.</summary>
+    public bool IsDragging { get; private set; }
+
+    /// <summary>Chooses the position for a new size. See <see cref="DesktopPinner.PlacementForSize"/>.</summary>
+    public Func<int, int, (int X, int Y)?>? PlacementForSize { get; set; }
 
     /// <summary>Attaches to the desktop again, after Explorer restarts or displays change.</summary>
     public void Repin() => _pinner?.Pin();
@@ -98,10 +108,12 @@ public partial class WidgetWindow : Window
         HoldButton.ToolTip = held ? "Held. Click to change or resume" : "Hold this quote";
     }
 
-    public void SetSaved(bool saved)
+    /// <summary>Null hides the star, for quotes you added yourself, which are already yours.</summary>
+    public void SetStarred(bool? starred)
     {
-        FavouriteButton.Content = saved ? FilledStarGlyph : StarGlyph;
-        FavouriteButton.ToolTip = saved ? "In My Quotes" : "Save to My Quotes";
+        StarButton.Visibility = starred is null ? Visibility.Collapsed : Visibility.Visible;
+        StarButton.Content = starred == true ? FilledStarGlyph : StarGlyph;
+        StarButton.ToolTip = starred == true ? "Remove star" : "Star this quote";
     }
 
     public void SetTextScale(double scale)
@@ -127,10 +139,7 @@ public partial class WidgetWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        if (!_debugFloat)
-        {
-            _pinner = new DesktopPinner(Handle);
-        }
+        _pinner = new DesktopPinner(Handle, pinToDesktop: !_debugFloat) { PlacementForSize = PlacementForSize };
         if (_frosted)
         {
             Backdrop.ApplyFrosted(Handle);
@@ -194,9 +203,49 @@ public partial class WidgetWindow : Window
 
     private void OnLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (_moveMode && e.ButtonState == MouseButtonState.Pressed)
+        // Buttons handle their own clicks, so this is a press on the quote itself.
+        _pressed = true;
+        _pressCursor = WindowGeometry.Cursor();
+        _pressRect = WindowGeometry.RectOf(Handle);
+        CaptureMouse();
+    }
+
+    private void OnDragMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_pressed)
         {
-            DragMove();
+            return;
+        }
+        var cursor = WindowGeometry.Cursor();
+        var dx = cursor.X - _pressCursor.X;
+        var dy = cursor.Y - _pressCursor.Y;
+        if (!IsDragging && Math.Abs(dx) + Math.Abs(dy) < DragThresholdPixels)
+        {
+            return;
+        }
+        if (!IsDragging)
+        {
+            IsDragging = true;
+            Cursor = Cursors.SizeAll;
+        }
+        WindowGeometry.MoveTo(Handle, _pressRect.Left + dx, _pressRect.Top + dy);
+    }
+
+    private void OnLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_pressed)
+        {
+            ReleaseMouseCapture(); // Raises LostMouseCapture, which finishes the drag.
+        }
+    }
+
+    private void OnDragCaptureLost(object sender, MouseEventArgs e)
+    {
+        _pressed = false;
+        if (IsDragging)
+        {
+            IsDragging = false;
+            Cursor = _moveMode ? Cursors.SizeAll : null;
             Moved?.Invoke();
         }
     }
@@ -213,5 +262,5 @@ public partial class WidgetWindow : Window
     private void OnNextClick(object sender, RoutedEventArgs e) => NextRequested?.Invoke();
     private void OnHoldClick(object sender, RoutedEventArgs e) => HoldMenuRequested?.Invoke();
     private void OnCopyClick(object sender, RoutedEventArgs e) => CopyRequested?.Invoke();
-    private void OnFavouriteClick(object sender, RoutedEventArgs e) => FavouriteRequested?.Invoke();
+    private void OnStarClick(object sender, RoutedEventArgs e) => StarRequested?.Invoke();
 }

@@ -7,7 +7,12 @@ namespace WindowsQuotes.Quotes;
 /// <summary>Where a quote came from. Online sources use their <see cref="Sources.IQuoteSource.Id"/>.</summary>
 public static class QuoteOrigin
 {
+    /// <summary>Typed in by the user.</summary>
     public const string Mine = "mine";
+
+    /// <summary>Saved from the widget with the star button.</summary>
+    public const string Starred = "starred";
+
     public const string Starter = "starter";
 }
 

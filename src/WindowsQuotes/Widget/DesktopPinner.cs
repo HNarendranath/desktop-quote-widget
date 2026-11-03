@@ -33,10 +33,13 @@ internal sealed class DesktopPinner : IDisposable
 
     private readonly IntPtr _hwnd;
     private readonly HwndSource _source;
+    private readonly bool _pinToDesktop;
 
-    public DesktopPinner(IntPtr hwnd)
+    /// <param name="pinToDesktop">False keeps every behaviour except the z-order, for checking a look while floating on top.</param>
+    public DesktopPinner(IntPtr hwnd, bool pinToDesktop = true)
     {
         _hwnd = hwnd;
+        _pinToDesktop = pinToDesktop;
         _source = HwndSource.FromHwnd(hwnd)
             ?? throw new InvalidOperationException("Window has no HwndSource yet.");
         _source.AddHook(WndProc);
@@ -47,6 +50,13 @@ internal sealed class DesktopPinner : IDisposable
 
         Pin();
     }
+
+    /// <summary>
+    /// Chooses the position whenever the window is resized. Deciding this while the resize
+    /// is still happening means the new size and position apply together, so a longer quote
+    /// can never appear behind the taskbar even briefly. Returning null leaves it alone.
+    /// </summary>
+    public Func<int, int, (int X, int Y)?>? PlacementForSize { get; set; }
 
     /// <summary>Makes all mouse input pass through the window, or restores it.</summary>
     public void SetClickThrough(bool enabled)
@@ -59,6 +69,11 @@ internal sealed class DesktopPinner : IDisposable
     /// <summary>Attaches to the current desktop window and moves to the bottom of the stack.</summary>
     public void Pin()
     {
+        if (!_pinToDesktop)
+        {
+            return;
+        }
+
         var progman = FindWindow("Progman", null);
         if (progman != IntPtr.Zero)
         {
@@ -78,13 +93,20 @@ internal sealed class DesktopPinner : IDisposable
                 return new IntPtr(MA_NOACTIVATE);
 
             case WM_WINDOWPOSCHANGING:
-                // Whatever asks to raise this window, send it back to the bottom.
                 var pos = Marshal.PtrToStructure<WINDOWPOS>(lParam);
-                if ((pos.flags & SWP_NOZORDER) == 0)
+
+                // Whatever asks to raise this window, send it back to the bottom.
+                if (_pinToDesktop && (pos.flags & SWP_NOZORDER) == 0)
                 {
                     pos.hwndInsertAfter = HWND_BOTTOM;
-                    Marshal.StructureToPtr(pos, lParam, false);
                 }
+                if ((pos.flags & SWP_NOSIZE) == 0 && PlacementForSize?.Invoke(pos.cx, pos.cy) is { } placement)
+                {
+                    pos.x = placement.X;
+                    pos.y = placement.Y;
+                    pos.flags &= ~SWP_NOMOVE;
+                }
+                Marshal.StructureToPtr(pos, lParam, false);
                 break;
 
             case WM_DISPLAYCHANGE:

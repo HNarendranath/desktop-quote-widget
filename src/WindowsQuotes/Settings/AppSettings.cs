@@ -14,8 +14,8 @@ public enum WidgetControls
     TrayOnly,
 }
 
-/// <summary>Position in physical pixels, relative to the monitor's work area.</summary>
-public sealed record WidgetPosition(int X, int Y);
+/// <summary>Where the widget's centre sits, in physical pixels, relative to the monitor's work area.</summary>
+public sealed record WidgetCenter(int X, int Y);
 
 public sealed class AppSettings
 {
@@ -25,7 +25,7 @@ public sealed class AppSettings
     public WidgetControls Controls { get; set; } = WidgetControls.HoverButtons;
     public int IntervalMinutes { get; set; } = 60;
 
-    /// <summary>How often your own quotes show, from 0 to 1, when other quotes are available.</summary>
+    /// <summary>How often your added and starred quotes show, from 0 to 1, when other quotes are available.</summary>
     public double OwnShare { get; set; } = 0.5;
 
     public double TextScale { get; set; } = 1.0;
@@ -33,7 +33,7 @@ public sealed class AppSettings
     /// <summary>Device name of the chosen monitor. Null means the primary monitor.</summary>
     public string? Monitor { get; set; }
 
-    public Dictionary<string, WidgetPosition> Positions { get; set; } = [];
+    public Dictionary<string, WidgetCenter> Centers { get; set; } = [];
 
     /// <summary>Sources turned off. Sources are on unless listed here, so new ones default to on.</summary>
     public HashSet<string> DisabledSources { get; set; } = [];

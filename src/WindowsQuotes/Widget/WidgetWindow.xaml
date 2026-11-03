@@ -13,6 +13,9 @@
         MouseEnter="OnMouseEnterWidget"
         MouseLeave="OnMouseLeaveWidget"
         MouseLeftButtonDown="OnLeftButtonDown"
+        MouseMove="OnDragMouseMove"
+        MouseLeftButtonUp="OnLeftButtonUp"
+        LostMouseCapture="OnDragCaptureLost"
         MouseRightButtonUp="OnRightButtonUp">
     <Window.Resources>
         <Style x:Key="IconButton" TargetType="Button">
@@ -81,7 +84,7 @@
                                 Opacity="0"
                                 IsHitTestVisible="False"
                                 Effect="{DynamicResource TextShadow}">
-                        <Button x:Name="FavouriteButton" Style="{StaticResource IconButton}" Click="OnFavouriteClick" ToolTip="Save to My Quotes" Content="&#xE734;" />
+                        <Button x:Name="StarButton" Style="{StaticResource IconButton}" Click="OnStarClick" ToolTip="Star this quote" Content="&#xE734;" />
                         <Button x:Name="CopyButton" Style="{StaticResource IconButton}" Click="OnCopyClick" ToolTip="Copy" Content="&#xE8C8;" />
                         <Button x:Name="HoldButton" Style="{StaticResource IconButton}" Click="OnHoldClick" ToolTip="Hold this quote" Content="&#xE718;" />
                         <Button x:Name="NextButton" Style="{StaticResource IconButton}" Click="OnNextClick" ToolTip="Next quote" Content="&#xE893;" />

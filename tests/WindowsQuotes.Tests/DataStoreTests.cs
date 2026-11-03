@@ -33,7 +33,7 @@ public sealed class DataStoreTests : IDisposable
             settings.IntervalMinutes = 240;
             settings.OwnShare = 0.25;
             settings.Monitor = @"\\.\DISPLAY2";
-            settings.Positions[@"\\.\DISPLAY2"] = new WidgetPosition(10, 20);
+            settings.Centers[@"\\.\DISPLAY2"] = new WidgetCenter(10, 20);
             settings.DisabledSources.Add("favqs");
         });
 
@@ -42,7 +42,7 @@ public sealed class DataStoreTests : IDisposable
         Assert.Equal(WidgetControls.TrayOnly, loaded.Controls);
         Assert.Equal(240, loaded.IntervalMinutes);
         Assert.Equal(0.25, loaded.OwnShare);
-        Assert.Equal(new WidgetPosition(10, 20), loaded.Positions[@"\\.\DISPLAY2"]);
+        Assert.Equal(new WidgetCenter(10, 20), loaded.Centers[@"\\.\DISPLAY2"]);
         Assert.Contains("favqs", loaded.DisabledSources);
     }
 

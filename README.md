@@ -17,9 +17,11 @@ To keep the app running after sign-in, turn on **Start with Windows** in Setting
 
 The widget has a tray icon. You may need to click the `^` arrow in the taskbar to see it, and you can drag it out to keep it visible.
 
+- **Drag the quote** to move it. The widget's centre stays where you drop it, and it always stays above the taskbar.
 - **Left-click the tray icon** to manage quotes and settings.
 - **Right-click the tray icon** for next quote, hold, add a quote, move widget and quit.
-- **Move widget** in the tray menu unlocks dragging. Choose it again to lock the position.
+- **Star a quote** with the star button to keep it. My Quotes has separate tabs for quotes you added and quotes you starred.
+- **Move widget** in the tray menu is only needed with tray-only controls, where the widget otherwise ignores the mouse.
 - **Starting the app again** while it's running opens the manager.
 
 ### Holding a quote
@@ -33,7 +35,7 @@ Hold keeps the current quote on screen for 1 hour, 4 hours, until tomorrow, 1 we
 | Look | Bare text on your wallpaper, frosted glass card, tinted dark card |
 | Controls | Buttons on hover, right-click menu, tray icon only (clicks pass through) |
 | Interval | 15 minutes, 30 minutes, 1 hour, 4 hours, 1 day |
-| Your own quotes | How often they show, from 0% to 100% |
+| Your added and starred quotes | How often they show, from 0% to 100% |
 | Also | Text size, monitor, reset position, start with Windows |
 
 The widget sits in front of desktop icons, so place it in an empty area. In the bare text and card looks, it takes clicks across its whole rectangle unless you choose tray-only controls.

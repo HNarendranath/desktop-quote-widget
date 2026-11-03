@@ -16,8 +16,6 @@ namespace WindowsQuotes.Widget;
 /// </summary>
 internal sealed class WidgetHost : IDisposable
 {
-    private const int DefaultMargin = 48;
-
     private static readonly TimeSpan StartupFetchDelay = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan MaxTimerDelay = TimeSpan.FromDays(1);
 
@@ -92,16 +90,10 @@ internal sealed class WidgetHost : IDisposable
         _window.NextRequested += Next;
         _window.HoldMenuRequested += () => NativeMenu.Show(_host.Handle, HoldEntries());
         _window.CopyRequested += Copy;
-        _window.FavouriteRequested += SaveCurrentToMyQuotes;
+        _window.StarRequested += ToggleStar;
         _window.ContextMenuRequested += () => NativeMenu.Show(_host.Handle, WidgetMenu());
         _window.Moved += SavePosition;
-        _window.SizeChanged += (_, _) =>
-        {
-            if (!_moveMode)
-            {
-                PlaceWindow(); // A longer quote may have grown it off the screen.
-            }
-        };
+        _window.PlacementForSize = PlacementFor;
         _window.SetQuote(_state.Rotation.Current, animate: false);
         _window.SetMoveMode(_moveMode);
         _window.Show();
@@ -196,17 +188,29 @@ internal sealed class WidgetHost : IDisposable
         }
     }
 
-    private void SaveCurrentToMyQuotes()
+    /// <summary>Whether the current quote is starred, or null if the user added it, so it can't be starred.</summary>
+    private bool? CurrentStarState()
     {
         if (_state.Rotation.Current is not { } quote)
+        {
+            return null;
+        }
+        var match = _own.FirstOrDefault(q => q.Key == quote.Key);
+        return match is null ? false : match.Source == QuoteOrigin.Starred ? true : null;
+    }
+
+    private void ToggleStar()
+    {
+        if (_state.Rotation.Current is not { } quote || CurrentStarState() is not { } starred)
         {
             return;
         }
         _own = _store.UpdateOwnQuotes(list =>
         {
-            if (list.All(q => q.Key != quote.Key))
+            list.RemoveAll(q => q.Key == quote.Key && q.Source == QuoteOrigin.Starred);
+            if (!starred && list.All(q => q.Key != quote.Key))
             {
-                list.Add(new Quote(quote.Text, quote.Author, QuoteOrigin.Mine));
+                list.Add(new Quote(quote.Text, quote.Author, QuoteOrigin.Starred));
             }
         });
         UpdateIndicators();
@@ -216,7 +220,7 @@ internal sealed class WidgetHost : IDisposable
     {
         var rotation = _state.Rotation;
         _window.SetHeld(rotation.Held);
-        _window.SetSaved(rotation.Current is { } quote && _own.Any(q => q.Key == quote.Key));
+        _window.SetStarred(CurrentStarState());
 
         var tooltip = !rotation.Held ? "Quotes"
             : rotation.HeldUntil is { } until ? $"Quotes: held until {FormatEnd(until)}"
@@ -248,13 +252,20 @@ internal sealed class WidgetHost : IDisposable
         return entries;
     }
 
-    private List<MenuEntry> WidgetMenu() =>
-    [
-        new("Next quote", Next),
-        new("Hold this quote", Children: HoldEntries()),
-        new("Copy", Copy),
-        new("Save to My Quotes", SaveCurrentToMyQuotes),
-    ];
+    private List<MenuEntry> WidgetMenu()
+    {
+        var entries = new List<MenuEntry>
+        {
+            new("Next quote", Next),
+            new("Hold this quote", Children: HoldEntries()),
+            new("Copy", Copy),
+        };
+        if (CurrentStarState() is { } starred)
+        {
+            entries.Add(new MenuEntry(starred ? "Remove star" : "Star this quote", ToggleStar));
+        }
+        return entries;
+    }
 
     private List<MenuEntry> TrayMenu() =>
     [
@@ -420,30 +431,24 @@ internal sealed class WidgetHost : IDisposable
         SetProcessWorkingSetSize(GetCurrentProcess(), -1, -1);
     }
 
+    /// <summary>Where the window goes for a given size, unless the user is dragging it.</summary>
+    private (int X, int Y)? PlacementFor(int width, int height)
+    {
+        if (_window.IsDragging)
+        {
+            return null;
+        }
+        var monitor = Monitors.Resolve(_settings.Monitor);
+        _settings.Centers.TryGetValue(monitor.Device, out var saved);
+        return WidgetPlacement.TopLeft(monitor.WorkArea, saved, width, height, WindowGeometry.DpiScale(_window.Handle));
+    }
+
     private void PlaceWindow()
     {
-        var monitor = Monitors.Resolve(_settings.Monitor);
-        var work = monitor.WorkArea;
-        GetWindowRect(_window.Handle, out var rect);
-        var width = rect.Right - rect.Left;
-        var height = rect.Bottom - rect.Top;
-
-        var x = work.Right - width - DefaultMargin;
-        var y = work.Bottom - height - DefaultMargin;
-        if (_settings.Positions.TryGetValue(monitor.Device, out var saved))
+        var rect = WindowGeometry.RectOf(_window.Handle);
+        if (PlacementFor(rect.Width, rect.Height) is { } place && (place.X != rect.Left || place.Y != rect.Top))
         {
-            x = work.Left + saved.X;
-            y = work.Top + saved.Y;
-        }
-
-        // Keep it fully on screen, whatever the layout now is.
-        x = Math.Max(work.Left, Math.Min(x, work.Right - width));
-        y = Math.Max(work.Top, Math.Min(y, work.Bottom - height));
-
-        if (x != rect.Left || y != rect.Top)
-        {
-            const uint SWP_NOSIZE = 0x0001, SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010;
-            SetWindowPos(_window.Handle, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+            WindowGeometry.MoveTo(_window.Handle, place.X, place.Y);
         }
     }
 
@@ -453,13 +458,15 @@ internal sealed class WidgetHost : IDisposable
         {
             return;
         }
-        GetWindowRect(_window.Handle, out var rect);
-        var position = new WidgetPosition(rect.Left - monitor.WorkArea.Left, rect.Top - monitor.WorkArea.Top);
+        var rect = WindowGeometry.RectOf(_window.Handle);
+        var center = WidgetPlacement.CenterOnDrop(monitor.WorkArea, rect.Left, rect.Top, rect.Width, rect.Height);
         _settings = _store.UpdateSettings(settings =>
         {
             settings.Monitor = monitor.Device;
-            settings.Positions[monitor.Device] = position;
+            settings.Centers[monitor.Device] = center;
         });
+        PlaceWindow(); // Pulls it back if it was dropped partly off screen.
+        RequestMemoryTrim();
     }
 
     private void SaveState()
@@ -489,27 +496,10 @@ internal sealed class WidgetHost : IDisposable
         _host.Dispose();
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct RECT
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetCurrentProcess();
 
     [DllImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetProcessWorkingSetSize(IntPtr process, nint minimum, nint maximum);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
 }

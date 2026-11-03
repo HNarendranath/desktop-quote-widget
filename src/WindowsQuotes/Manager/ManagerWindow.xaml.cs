@@ -28,6 +28,9 @@ public partial class ManagerWindow : Window
         _quotes = store.LoadOwnQuotes();
         InitializeComponent();
 
+        // The star button on the widget can change the list while this window is open.
+        Activated += (_, _) => ReloadQuotes();
+
         _sliderDebounce.Tick += (_, _) =>
         {
             _sliderDebounce.Stop();
@@ -47,23 +50,68 @@ public partial class ManagerWindow : Window
 
     private static void NotifyWidget() => HostWindow.NotifyReload();
 
+    private bool ShowingStarred => QuoteViews.SelectedItem == StarredView;
+
+    private static bool IsStarred(Quote quote) => quote.Source == QuoteOrigin.Starred;
+
+    private void ReloadQuotes()
+    {
+        if (_loading)
+        {
+            return;
+        }
+        var selected = _editing;
+        _quotes = _store.LoadOwnQuotes();
+        RefreshQuoteList();
+        if (selected is not null && !_quotes.Contains(selected))
+        {
+            ClearEditor();
+        }
+    }
+
     private void RefreshQuoteList()
     {
+        var selected = QuoteList.SelectedItem;
+        var inView = _quotes.Where(q => IsStarred(q) == ShowingStarred).ToList();
         var search = SearchBox.Text.Trim();
         QuoteList.ItemsSource = search.Length == 0
-            ? _quotes.ToList()
-            : _quotes.Where(q =>
+            ? inView
+            : inView.Where(q =>
                 q.Text.Contains(search, StringComparison.CurrentCultureIgnoreCase)
                 || q.Author.Contains(search, StringComparison.CurrentCultureIgnoreCase)).ToList();
+        QuoteList.SelectedItem = selected;
 
-        EmptyMessage.Text = _quotes.Count == 0 ? "No quotes yet. Add your first one below." : "No quotes match your search.";
+        AddedView.Header = $"Added by you ({_quotes.Count(q => !IsStarred(q))})";
+        StarredView.Header = $"Starred ({_quotes.Count(IsStarred)})";
+
+        EmptyMessage.Text = inView.Count > 0 ? "No quotes match your search."
+            : ShowingStarred ? "No starred quotes yet. Hover over the quote on your desktop and click the star."
+            : "No quotes yet. Add your first one below.";
         EmptyMessage.Visibility = QuoteList.Items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnQuoteViewChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!ReferenceEquals(e.OriginalSource, QuoteViews) || SearchBox is null)
+        {
+            return; // Still being constructed, or an event from inside the tab.
+        }
+        ClearEditor();
+        RefreshQuoteList();
+        EditorMessage.Text = string.Empty;
     }
 
     private void RefreshEditor()
     {
         var length = QuoteInput.Text.Trim().Length;
         var editing = _editing is not null;
+        var starred = ShowingStarred;
+
+        // Starred quotes come from elsewhere, so they can be removed but not reworded.
+        EditorFields.Visibility = starred ? Visibility.Collapsed : Visibility.Visible;
+        SaveButton.Visibility = starred ? Visibility.Collapsed : Visibility.Visible;
+        ClearButton.Visibility = starred ? Visibility.Collapsed : Visibility.Visible;
+        DeleteButton.Content = starred ? "Remove star" : "Delete";
 
         SaveButton.Content = editing ? "Save changes" : "Add quote";
         SaveButton.IsEnabled = length is > 0 and <= QuoteText.MaxOwnLength;
@@ -99,7 +147,10 @@ public partial class ManagerWindow : Window
     private void ClearEditor()
     {
         _editing = null;
-        QuoteList.SelectedItem = null;
+        if (QuoteList is not null)
+        {
+            QuoteList.SelectedItem = null;
+        }
         QuoteInput.Clear();
         AuthorInput.Clear();
         RefreshEditor();
@@ -133,7 +184,7 @@ public partial class ManagerWindow : Window
 
         if (duplicate)
         {
-            EditorMessage.Text = "That quote is already in your list.";
+            EditorMessage.Text = "That quote is already in your added or starred quotes.";
             return;
         }
 
@@ -276,7 +327,7 @@ public partial class ManagerWindow : Window
         {
             return; // Still being constructed.
         }
-        OwnShareLabel.Text = $"Show your own quotes about {OwnShareSlider.Value:0}% of the time";
+        OwnShareLabel.Text = $"Show your added and starred quotes about {OwnShareSlider.Value:0}% of the time";
         TextScaleLabel.Text = $"Text size: {TextScaleSlider.Value:0}%";
     }
 
@@ -295,7 +346,7 @@ public partial class ManagerWindow : Window
     private void OnResetPosition(object sender, RoutedEventArgs e)
     {
         var monitor = ((Choice<string?>)MonitorBox.SelectedItem).Value;
-        _store.UpdateSettings(settings => settings.Positions.Remove(monitor ?? string.Empty));
+        _store.UpdateSettings(settings => settings.Centers.Remove(monitor ?? string.Empty));
         NotifyWidget();
     }
 
