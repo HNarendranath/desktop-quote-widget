@@ -4,7 +4,9 @@ A small widget that sits on your Windows desktop, above the wallpaper and behind
 
 ## Run it
 
-You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) to build it.
+**From a release:** install the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0), download the zip from [Releases](https://github.com/HNarendranath/desktop-quote-widget/releases), extract it to a folder you plan to keep, and run `WindowsQuotes.exe`. The app isn't code-signed, so Windows may warn you the first time. Choose **More info**, then **Run anyway**.
+
+**From source:** you need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ```powershell
 dotnet publish src/WindowsQuotes -c Release -o publish
@@ -100,5 +102,7 @@ Useful flags:
 | `--data-dir <path>` | Use a different data folder, so tests don't touch your real quotes |
 | `--debug-float` | Float above other windows instead of pinning, to check a look without clearing the desktop |
 | `--manager` | Open the manager instead of the widget |
+
+The code is under the [MIT License](LICENSE). The bundled fonts keep their own licences, in `src/WindowsQuotes/Assets/Fonts/licenses`.
 
 `Widget/DesktopPinner.cs` keeps the window on the desktop layer, and `Widget/Backdrop.cs` applies the frosted effect. Both rely on undocumented Windows behaviour, so they're the first places to check if a Windows update changes how the widget behaves.
