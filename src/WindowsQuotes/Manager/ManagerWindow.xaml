@@ -122,7 +122,7 @@
                     <TextBlock Text="Monitor" Margin="0,16,0,4" />
                     <ComboBox x:Name="MonitorBox" SelectionChanged="OnSettingChanged" />
 
-                    <CheckBox x:Name="LockPositionBox" Content="Lock the widget's position, so the mouse can't move it" Margin="0,12,0,0" Click="OnDisplayOptionClicked" />
+                    <CheckBox x:Name="LockPositionBox" Content="Lock the widget's position, so the mouse can't move it" Margin="0,12,0,0" Click="OnLockPositionClicked" />
                     <Button x:Name="ResetPositionButton" Content="Reset widget position" Click="OnResetPosition" Margin="0,12,0,0" HorizontalAlignment="Left" />
 
                     <CheckBox x:Name="StartupBox" Content="Start with Windows" Margin="0,18,0,0" Click="OnStartupClicked" />

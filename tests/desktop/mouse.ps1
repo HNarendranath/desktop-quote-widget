@@ -104,7 +104,7 @@ foreach ($look in 'BareText','Frosted') {
       [M]::PostMessage($menu,0x100,[IntPtr]0x0D,[IntPtr]0) | Out-Null; Start-Sleep -Milliseconds 700  # Enter: For 1 hour
       $st = ([IO.File]::ReadAllText("$d\state.json",[Text.Encoding]::UTF8) | ConvertFrom-Json).rotation
       Check "choosing a hold duration holds the quote" ($st.held -and ([DateTimeOffset]$st.heldUntil -gt (Get-Date).AddMinutes(50)))
-      Check "pin button is filled while held" ((Button $h 'HoldButton').Current.Name -eq [string][char]0xE842)
+      Check "pin button shows the quote is held" ((Button $h 'HoldButton').Current.Name -eq 'Quote held')
     }
     Check "focus is back where it started" ([M]::GetForegroundWindow() -eq $fg)
 
@@ -136,6 +136,18 @@ try {
   ClickButton $h 'NextButton'; Start-Sleep -Milliseconds 500
   $after = ([IO.File]::ReadAllText("$d\state.json",[Text.Encoding]::UTF8) | ConvertFrom-Json).rotation.current.text
   Check "buttons still work while locked" ($before -ne $after)
+
+  ClickButton $h 'LockButton'; Start-Sleep -Milliseconds 300
+  $saved = [IO.File]::ReadAllText("$d\settings.json") | ConvertFrom-Json
+  Check "padlock button unlocks and saves it" (-not $saved.positionLocked)
+  $r2 = Rect $h
+  Drag ([int]($r2.L+($r2.R-$r2.L)*0.3)) ([int]($r2.T+($r2.B-$r2.T)*0.25)) -120 -80
+  $r3 = Rect $h
+  Check "dragging works again after unlocking" (($r3.L -eq $r2.L-120) -and ($r3.T -eq $r2.T-80)) "moved $($r3.L-$r2.L),$($r3.T-$r2.T)"
+
+  ClickButton $h 'LockButton'; Start-Sleep -Milliseconds 300
+  $saved = [IO.File]::ReadAllText("$d\settings.json") | ConvertFrom-Json
+  Check "padlock button locks and saves it" ($saved.positionLocked -eq $true)
 } finally { if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force } }
 } finally {
   # Always let go of the button and put the cursor back, even if a step above failed.

@@ -150,7 +150,7 @@ try {
   Check "pin holds it for a week" ($s.held -and ([DateTimeOffset]$s.heldUntil -gt (Get-Date).AddDays(6.9)))
   Check "pin request is consumed" (-not (Test-Path (Join-Path $d 'pin-request.json')))
   $holdButton = [Windows.Automation.AutomationElement]::FromHandle($h).FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition ([Windows.Automation.AutomationElement]::AutomationIdProperty),'HoldButton'))
-  Check "pin button is filled after holding from the manager" ($holdButton.Current.Name -eq [string][char]0xE842)
+  Check "pin button shows a hold set from the manager" ($holdButton.Current.Name -eq 'Quote held')
   Invoke-Button $h 'NextButton'; Start-Sleep -Milliseconds 900
   $s = (State $d).rotation
   Check "Next ends the hold" ((-not $s.held) -and $s.current.text -ne 'Pinned from the list.')

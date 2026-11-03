@@ -83,17 +83,15 @@
                     Effect="{DynamicResource TextShadow}">
             <Button x:Name="StarButton" Style="{StaticResource IconButton}" Click="OnStarClick" ToolTip="Star this quote" Content="&#xE734;" />
             <Button x:Name="CopyButton" Style="{StaticResource IconButton}" Click="OnCopyClick" ToolTip="Copy" Content="&#xE8C8;" />
-            <Button x:Name="HoldButton" Style="{StaticResource IconButton}" Click="OnHoldClick" ToolTip="Hold this quote" Content="&#xE718;" />
+            <!-- The font's filled pin is only the handle, made to sit under the outline, which has the point. -->
+            <Button x:Name="HoldButton" Style="{StaticResource IconButton}" Click="OnHoldClick" ToolTip="Hold this quote">
+                <Grid>
+                    <TextBlock x:Name="PinFill" Text="&#xE841;" Visibility="Collapsed" />
+                    <TextBlock Text="&#xE718;" />
+                </Grid>
+            </Button>
+            <Button x:Name="LockButton" Style="{StaticResource IconButton}" Click="OnLockClick" ToolTip="Lock position" Content="&#xE785;" />
             <Button x:Name="NextButton" Style="{StaticResource IconButton}" Click="OnNextClick" ToolTip="Next quote" Content="&#xE893;" />
         </StackPanel>
-
-        <Rectangle x:Name="MoveOutline"
-                   Visibility="Collapsed"
-                   IsHitTestVisible="False"
-                   Stroke="White"
-                   StrokeThickness="1.5"
-                   StrokeDashArray="5 4"
-                   RadiusX="12"
-                   RadiusY="12" />
     </Grid>
 </Window>

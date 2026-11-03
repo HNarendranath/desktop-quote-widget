@@ -3,6 +3,7 @@ using System.IO.Packaging;
 using System.Runtime.ExceptionServices;
 using System.Windows;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using WindowsQuotes.Manager;
 using WindowsQuotes.Quotes;
 using WindowsQuotes.Widget;
@@ -100,6 +101,33 @@ public sealed class StyleSettingsTests : IDisposable
         var reopened = new ManagerWindow(store, focusAddQuote: false);
         Assert.False(reopened.ShowAuthorsBox.IsChecked);
         Assert.True(reopened.LockPositionBox.IsChecked);
+    });
+
+    [Fact]
+    public void Manager_picks_up_a_lock_set_from_the_widget() => OnUiThread(() =>
+    {
+        var store = new DataStore(_directory);
+        var manager = new ManagerWindow(store, focusAddQuote: false);
+        Assert.False(manager.LockPositionBox.IsChecked);
+
+        store.UpdateSettings(s => s.PositionLocked = true); // What the widget's padlock button does.
+        manager.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = UIElement.MouseEnterEvent });
+
+        Assert.True(manager.LockPositionBox.IsChecked);
+    });
+
+    [Fact]
+    public void Other_manager_options_dont_undo_a_lock_set_from_the_widget() => OnUiThread(() =>
+    {
+        var store = new DataStore(_directory);
+        var manager = new ManagerWindow(store, focusAddQuote: false);
+
+        store.UpdateSettings(s => s.PositionLocked = true);
+        manager.LowercaseBox.IsChecked = true;
+        manager.LowercaseBox.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+
+        Assert.True(store.LoadSettings().Lowercase);
+        Assert.True(store.LoadSettings().PositionLocked);
     });
 
     [Fact]

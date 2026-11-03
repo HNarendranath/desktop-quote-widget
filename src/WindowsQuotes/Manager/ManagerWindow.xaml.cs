@@ -28,8 +28,14 @@ public partial class ManagerWindow : Window
         _quotes = store.LoadOwnQuotes();
         InitializeComponent();
 
-        // The star button on the widget can change the list while this window is open.
-        Activated += (_, _) => ReloadQuotes();
+        // The widget's star and lock buttons can change things while this window is open.
+        // Clicking the widget doesn't deactivate this window, so moving back to it counts too.
+        Activated += (_, _) =>
+        {
+            ReloadQuotes();
+            ReloadLockState();
+        };
+        MouseEnter += (_, _) => ReloadLockState();
 
         _sliderDebounce.Tick += (_, _) =>
         {
@@ -53,6 +59,14 @@ public partial class ManagerWindow : Window
     private bool ShowingStarred => QuoteViews.SelectedItem == StarredView;
 
     private static bool IsStarred(Quote quote) => quote.Source == QuoteOrigin.Starred;
+
+    private void ReloadLockState()
+    {
+        if (!_loading)
+        {
+            LockPositionBox.IsChecked = _store.LoadSettings().PositionLocked;
+        }
+    }
 
     private void ReloadQuotes()
     {
@@ -365,13 +379,18 @@ public partial class ManagerWindow : Window
     {
         var lowercase = LowercaseBox.IsChecked == true;
         var showAuthors = ShowAuthorsBox.IsChecked == true;
-        var locked = LockPositionBox.IsChecked == true;
         _store.UpdateSettings(settings =>
         {
             settings.Lowercase = lowercase;
             settings.ShowAuthors = showAuthors;
-            settings.PositionLocked = locked;
         });
+        NotifyWidget();
+    }
+
+    private void OnLockPositionClicked(object sender, RoutedEventArgs e)
+    {
+        var locked = LockPositionBox.IsChecked == true;
+        _store.UpdateSettings(settings => settings.PositionLocked = locked);
         NotifyWidget();
     }
 

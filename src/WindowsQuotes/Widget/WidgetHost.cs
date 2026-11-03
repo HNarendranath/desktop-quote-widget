@@ -35,7 +35,6 @@ internal sealed class WidgetHost : IDisposable
     private WidgetState _state;
     private QuoteRotator _rotator;
     private WidgetWindow _window = null!;
-    private bool _moveMode;
     private bool _fetching;
 
     public WidgetHost(DataStore store, bool debugFloat, string? dataDirArgument)
@@ -91,12 +90,12 @@ internal sealed class WidgetHost : IDisposable
         _window.HoldMenuRequested += () => NativeMenu.Show(_host.Handle, HoldEntries());
         _window.CopyRequested += Copy;
         _window.StarRequested += ToggleStar;
+        _window.LockRequested += TogglePositionLock;
         _window.ContextMenuRequested += () => NativeMenu.Show(_host.Handle, WidgetMenu());
         _window.Moved += SavePosition;
         _window.PlacementForSize = PlacementFor;
         _window.SetQuote(_state.Rotation.Current, animate: false);
         _window.SetPositionLocked(_settings.PositionLocked);
-        _window.SetMoveMode(_moveMode);
         _window.Show();
         PlaceWindow();
     }
@@ -267,27 +266,20 @@ internal sealed class WidgetHost : IDisposable
         {
             entries.Add(new MenuEntry(starred ? "Remove star" : "Star this quote", ToggleStar));
         }
+        entries.Add(new MenuEntry("Lock position", TogglePositionLock, Checked: _settings.PositionLocked));
         return entries;
     }
 
-    private List<MenuEntry> TrayMenu()
-    {
-        var entries = new List<MenuEntry>
-        {
-            new("Next quote", Next),
-            new("Hold this quote", Children: HoldEntries()),
-            MenuEntry.Separator,
-            new("Add a quote…", () => LaunchManager("--add")),
-            new("Manage quotes and settings…", () => LaunchManager()),
-        };
-        if (!_settings.PositionLocked)
-        {
-            entries.Add(new MenuEntry("Move widget", ToggleMoveMode, Checked: _moveMode));
-        }
-        entries.Add(MenuEntry.Separator);
-        entries.Add(new MenuEntry("Quit", Quit));
-        return entries;
-    }
+    private List<MenuEntry> TrayMenu() =>
+    [
+        new("Next quote", Next),
+        new("Hold this quote", Children: HoldEntries()),
+        MenuEntry.Separator,
+        new("Add a quote…", () => LaunchManager("--add")),
+        new("Manage quotes and settings…", () => LaunchManager()),
+        MenuEntry.Separator,
+        new("Quit", Quit),
+    ];
 
     private void OnTrayEvent(int mouseMessage)
     {
@@ -317,10 +309,10 @@ internal sealed class WidgetHost : IDisposable
         Process.Start(start)?.Dispose();
     }
 
-    private void ToggleMoveMode()
+    private void TogglePositionLock()
     {
-        _moveMode = !_moveMode;
-        _window.SetMoveMode(_moveMode);
+        _settings = _store.UpdateSettings(settings => settings.PositionLocked = !settings.PositionLocked);
+        _window.SetPositionLocked(_settings.PositionLocked);
     }
 
     private void Quit()
@@ -348,7 +340,6 @@ internal sealed class WidgetHost : IDisposable
         var previous = _settings;
         _settings = _store.LoadSettings();
         _own = _store.LoadOwnQuotes();
-        _moveMode &= !_settings.PositionLocked;
 
         _rotator.Reschedule(Options, DateTimeOffset.Now);
         ApplyPinRequest();
@@ -371,7 +362,6 @@ internal sealed class WidgetHost : IDisposable
             if (_settings.PositionLocked != previous.PositionLocked)
             {
                 _window.SetPositionLocked(_settings.PositionLocked);
-                _window.SetMoveMode(_moveMode);
             }
             PlaceWindow();
         }

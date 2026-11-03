@@ -2,6 +2,7 @@ using System.IO;
 using System.IO.Packaging;
 using System.Runtime.ExceptionServices;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -241,37 +242,70 @@ public class WidgetLayoutTests
         Assert.True(locked.IsPressed);
     });
 
-    /// <summary>How much of the button's icon is solid, from the icon's actual shape.</summary>
-    private static double IconArea(System.Windows.Controls.Button button)
+    /// <summary>Alpha values of a button drawn on its own, enlarged so the icon's shape is clear.</summary>
+    private static byte[] IconAlpha(System.Windows.Controls.Button button)
     {
-        var typeface = new Typeface(button.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
-        var text = new FormattedText((string)button.Content, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 40, Brushes.White, 1);
-        return text.BuildGeometry(new Point()).GetArea();
+        const int Size = 240;
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            dc.DrawRectangle(new VisualBrush(button), null, new Rect(0, 0, Size, Size));
+        }
+        var bitmap = new RenderTargetBitmap(Size, Size, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        var pixels = new byte[Size * Size * 4];
+        bitmap.CopyPixels(pixels, Size * 4, 0);
+        return pixels.Where((_, i) => i % 4 == 3).ToArray();
     }
 
     [Fact]
-    public void Pin_button_is_visibly_filled_while_held() => OnUiThread(() =>
+    public void Held_pin_fills_the_handle_and_keeps_the_point() => OnUiThread(() =>
     {
         var window = Laid(MediumQuote, string.Empty, QuoteFonts.DefaultName);
-        var button = window.HoldButton;
 
         window.SetHeld(false);
-        var outline = (string)button.Content;
-        var outlineArea = IconArea(button);
+        window.Root.UpdateLayout();
+        var outline = IconAlpha(window.HoldButton);
 
         window.SetHeld(true);
-        var filled = (string)button.Content;
-        var filledArea = IconArea(button);
+        window.Root.UpdateLayout();
+        var held = IconAlpha(window.HoldButton);
 
-        var iconFont = new Typeface(button.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
-        Assert.True(iconFont.TryGetGlyphTypeface(out var glyphs));
-        Assert.True(glyphs.CharacterToGlyphMap.ContainsKey(outline[0]), "the outline pin isn't in the icon font");
-        Assert.True(glyphs.CharacterToGlyphMap.ContainsKey(filled[0]), "the filled pin isn't in the icon font");
+        var outlineInk = outline.Count(a => a > 200);
+        var heldInk = held.Count(a => a > 200);
+        var kept = outline.Zip(held).Count(p => p.First > 200 && p.Second > 128);
 
-        Assert.True(filledArea > outlineArea * 1.3, $"filled {filledArea:0} vs outline {outlineArea:0}");
+        Assert.True(outlineInk > 500, $"the outline barely drew: {outlineInk} pixels");
+        Assert.True(heldInk > outlineInk * 1.3, $"held {heldInk} vs outline {outlineInk} pixels");
+
+        // This fails if the held icon loses the needle, because every outline pixel must survive.
+        Assert.True(kept >= outlineInk * 0.99, $"only {kept} of {outlineInk} outline pixels survive");
 
         window.SetHeld(false);
-        Assert.Equal(outline, (string)button.Content);
+        window.Root.UpdateLayout();
+        Assert.Equal(outlineInk, IconAlpha(window.HoldButton).Count(a => a > 200));
+    });
+
+    [Fact]
+    public void Lock_button_shows_the_state_and_asks_to_toggle() => OnUiThread(() =>
+    {
+        var window = Laid(MediumQuote, string.Empty, QuoteFonts.DefaultName);
+        var clicks = 0;
+        window.LockRequested += () => clicks++;
+
+        window.SetPositionLocked(false);
+        var open = (string)window.LockButton.Content;
+        window.SetPositionLocked(true);
+        var closed = (string)window.LockButton.Content;
+        Assert.NotEqual(open, closed);
+
+        var iconFont = new Typeface(window.LockButton.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        Assert.True(iconFont.TryGetGlyphTypeface(out var glyphs));
+        Assert.True(glyphs.CharacterToGlyphMap.ContainsKey(open[0]));
+        Assert.True(glyphs.CharacterToGlyphMap.ContainsKey(closed[0]));
+
+        window.LockButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        Assert.Equal(1, clicks);
     });
 
     [Fact]
@@ -343,6 +377,26 @@ public class WidgetLayoutTests
         var sizesBitmap = new RenderTargetBitmap(1100, 760, 96, 96, PixelFormats.Pbgra32);
         sizesBitmap.Render(sizes);
         Save(sizesBitmap, Path.Combine(folder, "sizes.png"));
+
+        // The hover buttons, off and on, enlarged.
+        var row = new DrawingVisual();
+        using (var dc = row.RenderOpen())
+        {
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(30, 32, 40)), null, new Rect(0, 0, 860, 420));
+            foreach (var (active, y) in new[] { (false, 20.0), (true, 220.0) })
+            {
+                var window = Laid(MediumQuote, string.Empty, QuoteFonts.DefaultName);
+                window.SetHeld(active);
+                window.SetPositionLocked(active);
+                window.SetStarred(active);
+                window.Buttons.Opacity = 1; // They only fade in on hover.
+                window.Root.UpdateLayout();
+                dc.DrawRectangle(new VisualBrush(window.Buttons), null, new Rect(20, y, window.Buttons.ActualWidth * 5, window.Buttons.ActualHeight * 5));
+            }
+        }
+        var rowBitmap = new RenderTargetBitmap(860, 420, 96, 96, PixelFormats.Pbgra32);
+        rowBitmap.Render(row);
+        Save(rowBitmap, Path.Combine(folder, "buttons.png"));
     });
 
     private static void Save(BitmapSource bitmap, string path)

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -28,8 +29,8 @@ public partial class WidgetWindow : Window
     private const int AnimationFrameRate = 30;
     private const int DragThresholdPixels = 4;
 
-    private const string PinGlyph = "";
-    private const string PinnedGlyph = "";
+    private const string LockedGlyph = "";
+    private const string UnlockedGlyph = "";
     private const string StarGlyph = "";
     private const string FilledStarGlyph = "";
 
@@ -41,7 +42,6 @@ public partial class WidgetWindow : Window
     private readonly bool _debugFloat;
     private WidgetControls _controls;
     private QuoteStyle _style;
-    private bool _moveMode;
     private bool _positionLocked;
     private DesktopPinner? _pinner;
     private Quote? _quote;
@@ -75,6 +75,7 @@ public partial class WidgetWindow : Window
     public event Action? HoldMenuRequested;
     public event Action? CopyRequested;
     public event Action? StarRequested;
+    public event Action? LockRequested;
     public event Action? ContextMenuRequested;
     public event Action? Moved;
 
@@ -122,8 +123,9 @@ public partial class WidgetWindow : Window
 
     public void SetHeld(bool held)
     {
-        HoldButton.Content = held ? PinnedGlyph : PinGlyph;
+        PinFill.Visibility = held ? Visibility.Visible : Visibility.Collapsed;
         HoldButton.ToolTip = held ? "Held. Click to change or resume" : "Hold this quote";
+        AutomationProperties.SetName(HoldButton, held ? "Quote held" : "Hold this quote");
     }
 
     /// <summary>Null hides the star, for quotes you added yourself, which are already yours.</summary>
@@ -147,14 +149,12 @@ public partial class WidgetWindow : Window
         ApplyInputMode();
     }
 
-    public void SetPositionLocked(bool locked) => _positionLocked = locked;
-
-    public void SetMoveMode(bool enabled)
+    public void SetPositionLocked(bool locked)
     {
-        _moveMode = enabled;
-        MoveOutline.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
-        Cursor = enabled ? Cursors.SizeAll : null;
-        ApplyInputMode();
+        _positionLocked = locked;
+        LockButton.Content = locked ? LockedGlyph : UnlockedGlyph;
+        LockButton.ToolTip = locked ? "Position locked. Click to unlock" : "Lock position";
+        AutomationProperties.SetName(LockButton, locked ? "Position locked" : "Lock position");
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -223,8 +223,8 @@ public partial class WidgetWindow : Window
 
     private void ApplyInputMode()
     {
-        _pinner?.SetClickThrough(_controls == WidgetControls.TrayOnly && !_moveMode);
-        if (_moveMode || _controls != WidgetControls.HoverButtons)
+        _pinner?.SetClickThrough(_controls == WidgetControls.TrayOnly);
+        if (_controls != WidgetControls.HoverButtons)
         {
             ShowButtons(false);
         }
@@ -245,7 +245,7 @@ public partial class WidgetWindow : Window
 
     private void OnMouseEnterWidget(object sender, MouseEventArgs e)
     {
-        if (_controls == WidgetControls.HoverButtons && !_moveMode)
+        if (_controls == WidgetControls.HoverButtons)
         {
             ShowButtons(true);
         }
@@ -308,14 +308,14 @@ public partial class WidgetWindow : Window
         if (IsDragging)
         {
             IsDragging = false;
-            Cursor = _moveMode ? Cursors.SizeAll : null;
+            Cursor = null;
             Moved?.Invoke();
         }
     }
 
     private void OnRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (_controls == WidgetControls.RightClickMenu && !_moveMode)
+        if (_controls == WidgetControls.RightClickMenu)
         {
             ContextMenuRequested?.Invoke();
             e.Handled = true;
@@ -326,4 +326,5 @@ public partial class WidgetWindow : Window
     private void OnHoldClick(object sender, RoutedEventArgs e) => HoldMenuRequested?.Invoke();
     private void OnCopyClick(object sender, RoutedEventArgs e) => CopyRequested?.Invoke();
     private void OnStarClick(object sender, RoutedEventArgs e) => StarRequested?.Invoke();
+    private void OnLockClick(object sender, RoutedEventArgs e) => LockRequested?.Invoke();
 }
