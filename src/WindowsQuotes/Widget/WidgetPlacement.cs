@@ -12,13 +12,14 @@ public static class WidgetPlacement
 {
     private const double DefaultMarginDip = 48;
 
-    /// <summary>A typical height, so the default centre doesn't depend on the current quote.</summary>
+    /// <summary>A typical size, so the default centre doesn't depend on the current quote.</summary>
+    private const double NominalWidthDip = 520;
     private const double NominalHeightDip = 190;
 
     /// <summary>The top-left corner for a window of this size.</summary>
     public static (int X, int Y) TopLeft(PixelRect work, WidgetCenter? saved, int width, int height, double dpiScale)
     {
-        var center = saved ?? DefaultCenter(work, width, dpiScale);
+        var center = saved ?? DefaultCenter(work, dpiScale);
         return Clamp(work, work.Left + center.X - (width / 2), work.Top + center.Y - (height / 2), width, height);
     }
 
@@ -29,9 +30,10 @@ public static class WidgetPlacement
         return new WidgetCenter(x + (width / 2) - work.Left, y + (height / 2) - work.Top);
     }
 
-    private static WidgetCenter DefaultCenter(PixelRect work, int width, double dpiScale)
+    private static WidgetCenter DefaultCenter(PixelRect work, double dpiScale)
     {
         var margin = (int)(DefaultMarginDip * dpiScale);
+        var width = (int)(NominalWidthDip * dpiScale);
         var height = (int)(NominalHeightDip * dpiScale);
         return new WidgetCenter(work.Width - margin - (width / 2), work.Height - margin - (height / 2));
     }

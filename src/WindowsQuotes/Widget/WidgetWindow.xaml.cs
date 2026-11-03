@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using WindowsQuotes.Quotes;
 using WindowsQuotes.Settings;
@@ -12,6 +14,17 @@ public partial class WidgetWindow : Window
 {
     private const double BaseQuoteSize = 28;
     private const double BaseAuthorSize = 15;
+    private const double MaxTextWidth = 456;
+
+    /// <summary>Keeps the bubble shorter than a small laptop's screen at any text size, so it stays above the taskbar.</summary>
+    private const double MaxTextHeight = 520;
+    private const double MinFontSize = 10;
+    private const double ShrinkStep = 0.92;
+
+    private const double AuthorGap = 12;
+    private const double SidePadding = 32;
+    private const double PaddingWithButtons = 40;
+    private const double PaddingWithoutButtons = 26;
     private const int AnimationFrameRate = 30;
     private const int DragThresholdPixels = 4;
 
@@ -27,7 +40,7 @@ public partial class WidgetWindow : Window
     private readonly bool _frosted;
     private readonly bool _debugFloat;
     private WidgetControls _controls;
-    private double _textScale;
+    private QuoteStyle _style;
     private bool _moveMode;
     private DesktopPinner? _pinner;
     private Quote? _quote;
@@ -36,19 +49,20 @@ public partial class WidgetWindow : Window
     private PixelRect _pressRect;
 
     /// <param name="debugFloat">Float above other windows instead of pinning, so a look can be checked without clearing the desktop.</param>
-    public WidgetWindow(WidgetLook look, WidgetControls controls, double textScale, bool debugFloat = false)
+    public WidgetWindow(WidgetLook look, WidgetControls controls, QuoteStyle style, bool debugFloat = false)
     {
         _frosted = look == WidgetLook.Frosted;
         _debugFloat = debugFloat;
         _controls = controls;
-        _textScale = textScale;
+        _style = style;
 
         Resources.MergedDictionaries.Add(new ResourceDictionary
         {
-            Source = new Uri($"pack://application:,,,/Widget/Themes/{look}.xaml"),
+            Source = new Uri($"pack://application:,,,/WindowsQuotes;component/Widget/Themes/{look}.xaml"),
         });
 
         InitializeComponent();
+        ApplyPadding();
 
         // Only a non-layered window can have the frosted backdrop, and this can't change
         // after the window is shown, which is why changing look recreates the window.
@@ -116,15 +130,16 @@ public partial class WidgetWindow : Window
         StarButton.ToolTip = starred == true ? "Remove star" : "Star this quote";
     }
 
-    public void SetTextScale(double scale)
+    public void SetStyle(QuoteStyle style)
     {
-        _textScale = scale;
+        _style = style;
         ApplyText();
     }
 
     public void SetControls(WidgetControls controls)
     {
         _controls = controls;
+        ApplyPadding();
         ApplyInputMode();
     }
 
@@ -155,12 +170,49 @@ public partial class WidgetWindow : Window
 
     private void ApplyText()
     {
-        var text = _quote?.Text ?? string.Empty;
-        var author = _quote?.Author ?? string.Empty;
-        QuoteLine.FontSize = BaseQuoteSize * _textScale * QuoteText.ScaleForLength(text.Length);
-        AuthorLine.FontSize = BaseAuthorSize * _textScale;
+        var text = ForDisplay(_quote?.Text);
+        var author = ForDisplay(_quote?.Author);
+        if (author.Length > 0)
+        {
+            author = $"— {author}";
+        }
+
+        var font = QuoteFonts.Find(_style.Font);
+        var pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+
+        var size = BaseQuoteSize * _style.Scale * font.SizeScale * QuoteText.ScaleForLength(text.Length);
+        var quoteFit = QuoteLayout.Fit(text, font.Family, size, size * font.LineSpacing, MaxTextWidth, pixelsPerDip);
+        while (quoteFit.Height > MaxTextHeight && size > MinFontSize)
+        {
+            size *= ShrinkStep;
+            quoteFit = QuoteLayout.Fit(text, font.Family, size, size * font.LineSpacing, MaxTextWidth, pixelsPerDip);
+        }
+        QuoteLine.FontFamily = font.Family;
+        QuoteLine.FontSize = size;
+        QuoteLine.LineHeight = size * font.LineSpacing;
+        QuoteLine.Width = quoteFit.Width;
+        QuoteLine.Margin = new Thickness(0, -quoteFit.InkAbove, 0, -quoteFit.InkBelow);
         QuoteLine.Text = text;
-        AuthorLine.Text = author.Length == 0 ? string.Empty : $"— {author}";
+
+        var authorSize = BaseAuthorSize * _style.Scale;
+        var authorFit = QuoteLayout.Fit(author, AuthorLine.FontFamily, authorSize, authorSize * 1.3, MaxTextWidth, pixelsPerDip);
+        AuthorLine.FontSize = authorSize;
+        AuthorLine.MaxWidth = MaxTextWidth;
+        AuthorLine.Margin = new Thickness(0, AuthorGap - authorFit.InkAbove, 0, -authorFit.InkBelow);
+        AuthorLine.Text = author;
+        AuthorLine.Visibility = author.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private string ForDisplay(string? value)
+    {
+        var text = value ?? string.Empty;
+        return _style.Lowercase ? text.ToLower(CultureInfo.CurrentCulture) : text;
+    }
+
+    private void ApplyPadding()
+    {
+        var vertical = _controls == WidgetControls.HoverButtons ? PaddingWithButtons : PaddingWithoutButtons;
+        Card.Padding = new Thickness(SidePadding, vertical, SidePadding, vertical);
     }
 
     private void ApplyInputMode()

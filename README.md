@@ -36,7 +36,11 @@ Hold keeps the current quote on screen for 1 hour, 4 hours, until tomorrow, 1 we
 | Controls | Buttons on hover, right-click menu, tray icon only (clicks pass through) |
 | Interval | 15 minutes, 30 minutes, 1 hour, 4 hours, 1 day |
 | Your added and starred quotes | How often they show, from 0% to 100% |
+| Font | Serif and clean fonts, plus cursive and handwritten ones. Each shows in its own style in the list |
+| Lowercase | Shows quotes and authors in lowercase. Your saved quotes keep their capitals, and Copy uses the original |
 | Also | Text size, monitor, reset position, start with Windows |
+
+Text is centred, and the bubble resizes around each quote while its centre stays put. Dancing Script, Great Vibes, Parisienne and Sacramento come with the app, under the SIL Open Font License (see `font-licenses` next to the app). The other fonts are listed only if they're installed, and some come with Office.
 
 The widget sits in front of desktop icons, so place it in an empty area. In the bare text and card looks, it takes clicks across its whole rectangle unless you choose tray-only controls.
 
@@ -76,6 +80,15 @@ Everything lives in `%APPDATA%\WindowsQuotes\`:
 
 ```powershell
 dotnet test
+```
+
+These tests never open a window, so you can keep using the PC. That includes the layout tests, which draw the real widget into a bitmap. To also save pictures of every font, set `WQ_RENDER_DIR` to a folder first.
+
+The real-desktop tests are separate. They move the mouse, open menus and windows, and take focus for about 5 minutes, so run them when you aren't using the PC:
+
+```powershell
+dotnet publish src/WindowsQuotes -c Release -o publish
+powershell -ExecutionPolicy Bypass -File tests\desktop\run-all.ps1
 ```
 
 Useful flags:

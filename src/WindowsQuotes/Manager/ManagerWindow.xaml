@@ -95,6 +95,15 @@
                     <TextBlock Text="Look" Margin="0,0,0,4" />
                     <ComboBox x:Name="LookBox" SelectionChanged="OnSettingChanged" />
 
+                    <TextBlock Text="Font" Margin="0,16,0,4" />
+                    <ComboBox x:Name="FontBox" SelectionChanged="OnSettingChanged" MaxDropDownHeight="420">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" FontFamily="{Binding Family}" FontSize="18" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
                     <TextBlock Text="Controls" Margin="0,16,0,4" />
                     <ComboBox x:Name="ControlsBox" SelectionChanged="OnSettingChanged" />
 
@@ -106,6 +115,8 @@
 
                     <TextBlock x:Name="TextScaleLabel" Margin="0,16,0,4" />
                     <Slider x:Name="TextScaleSlider" Minimum="70" Maximum="160" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OnSliderChanged" />
+
+                    <CheckBox x:Name="LowercaseBox" Content="Show quotes in lowercase" Margin="0,12,0,0" Click="OnLowercaseClicked" />
 
                     <TextBlock Text="Monitor" Margin="0,16,0,4" />
                     <ComboBox x:Name="MonitorBox" SelectionChanged="OnSettingChanged" />

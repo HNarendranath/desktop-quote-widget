@@ -86,7 +86,7 @@ internal sealed class WidgetHost : IDisposable
 
     private void CreateWindow()
     {
-        _window = new WidgetWindow(_settings.Look, _settings.Controls, _settings.TextScale, _debugFloat);
+        _window = new WidgetWindow(_settings.Look, _settings.Controls, StyleOf(_settings), _debugFloat);
         _window.NextRequested += Next;
         _window.HoldMenuRequested += () => NativeMenu.Show(_host.Handle, HoldEntries());
         _window.CopyRequested += Copy;
@@ -99,6 +99,8 @@ internal sealed class WidgetHost : IDisposable
         _window.Show();
         PlaceWindow();
     }
+
+    private static QuoteStyle StyleOf(AppSettings settings) => new(settings.TextScale, settings.Font, settings.Lowercase);
 
     private void RecreateWindow()
     {
@@ -353,9 +355,9 @@ internal sealed class WidgetHost : IDisposable
             {
                 _window.SetControls(_settings.Controls);
             }
-            if (_settings.TextScale != previous.TextScale)
+            if (StyleOf(_settings) != StyleOf(previous))
             {
-                _window.SetTextScale(_settings.TextScale);
+                _window.SetStyle(StyleOf(_settings));
             }
             PlaceWindow();
         }

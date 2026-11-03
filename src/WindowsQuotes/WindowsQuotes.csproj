@@ -25,6 +25,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Assets\starter-quotes.json" LogicalName="starter-quotes.json" />
+    <Resource Include="Assets\Fonts\*.ttf" />
+    <None Include="Assets\Fonts\licenses\*.txt" Link="font-licenses\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <InternalsVisibleTo Include="WindowsQuotes.Tests" />
   </ItemGroup>
 
 </Project>

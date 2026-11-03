@@ -14,6 +14,9 @@ public enum WidgetControls
     TrayOnly,
 }
 
+/// <summary>How quote text is drawn.</summary>
+public sealed record QuoteStyle(double Scale, string Font, bool Lowercase);
+
 /// <summary>Where the widget's centre sits, in physical pixels, relative to the monitor's work area.</summary>
 public sealed record WidgetCenter(int X, int Y);
 
@@ -29,6 +32,12 @@ public sealed class AppSettings
     public double OwnShare { get; set; } = 0.5;
 
     public double TextScale { get; set; } = 1.0;
+
+    /// <summary>The font's name in the widget's list. Unknown names use the default font.</summary>
+    public string Font { get; set; } = "Sitka";
+
+    /// <summary>Shows quotes in lowercase. Only the display changes, never the saved quote.</summary>
+    public bool Lowercase { get; set; }
 
     /// <summary>Device name of the chosen monitor. Null means the primary monitor.</summary>
     public string? Monitor { get; set; }

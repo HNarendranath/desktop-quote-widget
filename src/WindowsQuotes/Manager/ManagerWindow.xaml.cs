@@ -248,6 +248,13 @@ public partial class ManagerWindow : Window
         };
         Select(LookBox, settings.Look);
 
+        var fonts = QuoteFonts.Available();
+        FontBox.ItemsSource = fonts;
+        FontBox.SelectedItem = fonts.FirstOrDefault(f => f.Name == settings.Font)
+            ?? fonts.FirstOrDefault(f => f.Name == QuoteFonts.DefaultName)
+            ?? fonts[0];
+        LowercaseBox.IsChecked = settings.Lowercase;
+
         ControlsBox.ItemsSource = new[]
         {
             new Choice<WidgetControls>("Buttons appear on hover", WidgetControls.HoverButtons),
@@ -298,12 +305,14 @@ public partial class ManagerWindow : Window
             return;
         }
         var look = ((Choice<WidgetLook>)LookBox.SelectedItem).Value;
+        var font = ((QuoteFont)FontBox.SelectedItem).Name;
         var controls = ((Choice<WidgetControls>)ControlsBox.SelectedItem).Value;
         var interval = ((Choice<int>)IntervalBox.SelectedItem).Value;
         var monitor = ((Choice<string?>)MonitorBox.SelectedItem).Value;
         _store.UpdateSettings(settings =>
         {
             settings.Look = look;
+            settings.Font = font;
             settings.Controls = controls;
             settings.IntervalMinutes = interval;
             settings.Monitor = monitor;
@@ -347,6 +356,13 @@ public partial class ManagerWindow : Window
     {
         var monitor = ((Choice<string?>)MonitorBox.SelectedItem).Value;
         _store.UpdateSettings(settings => settings.Centers.Remove(monitor ?? string.Empty));
+        NotifyWidget();
+    }
+
+    private void OnLowercaseClicked(object sender, RoutedEventArgs e)
+    {
+        var lowercase = LowercaseBox.IsChecked == true;
+        _store.UpdateSettings(settings => settings.Lowercase = lowercase);
         NotifyWidget();
     }
 
