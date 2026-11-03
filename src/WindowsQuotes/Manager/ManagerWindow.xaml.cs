@@ -254,6 +254,8 @@ public partial class ManagerWindow : Window
             ?? fonts.FirstOrDefault(f => f.Name == QuoteFonts.DefaultName)
             ?? fonts[0];
         LowercaseBox.IsChecked = settings.Lowercase;
+        ShowAuthorsBox.IsChecked = settings.ShowAuthors;
+        LockPositionBox.IsChecked = settings.PositionLocked;
 
         ControlsBox.ItemsSource = new[]
         {
@@ -359,10 +361,17 @@ public partial class ManagerWindow : Window
         NotifyWidget();
     }
 
-    private void OnLowercaseClicked(object sender, RoutedEventArgs e)
+    private void OnDisplayOptionClicked(object sender, RoutedEventArgs e)
     {
         var lowercase = LowercaseBox.IsChecked == true;
-        _store.UpdateSettings(settings => settings.Lowercase = lowercase);
+        var showAuthors = ShowAuthorsBox.IsChecked == true;
+        var locked = LockPositionBox.IsChecked == true;
+        _store.UpdateSettings(settings =>
+        {
+            settings.Lowercase = lowercase;
+            settings.ShowAuthors = showAuthors;
+            settings.PositionLocked = locked;
+        });
         NotifyWidget();
     }
 

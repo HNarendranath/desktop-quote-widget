@@ -17,7 +17,7 @@ To keep the app running after sign-in, turn on **Start with Windows** in Setting
 
 The widget has a tray icon. You may need to click the `^` arrow in the taskbar to see it, and you can drag it out to keep it visible.
 
-- **Drag the quote** to move it. The widget's centre stays where you drop it, and it always stays above the taskbar.
+- **Drag the quote** to move it. The widget's centre stays where you drop it, and it always stays above the taskbar. Turn on **Lock the widget's position** in Settings to stop the mouse moving it, which also removes **Move widget** from the tray menu.
 - **Left-click the tray icon** to manage quotes and settings.
 - **Right-click the tray icon** for next quote, hold, add a quote, move widget and quit.
 - **Star a quote** with the star button to keep it. My Quotes has separate tabs for quotes you added and quotes you starred.
@@ -26,7 +26,7 @@ The widget has a tray icon. You may need to click the `^` arrow in the taskbar t
 
 ### Holding a quote
 
-Hold keeps the current quote on screen for 1 hour, 4 hours, until tomorrow, 1 week, or until you resume. Holds survive restarts. To end one early, choose **Resume rotation** to keep the quote until the next interval, or **Next** to move on straight away. In My Quotes, **Show and hold** puts any of your own quotes on screen and holds it.
+Hold keeps the current quote on screen for 1 hour, 4 hours, until tomorrow, 1 week, or until you resume. The pin button is filled while a quote is held, however the hold was set. Holds survive restarts. To end one early, choose **Resume rotation** to keep the quote until the next interval, or **Next** to move on straight away. In My Quotes, **Show and hold** puts any of your own quotes on screen and holds it.
 
 ### Settings
 
@@ -38,6 +38,8 @@ Hold keeps the current quote on screen for 1 hour, 4 hours, until tomorrow, 1 we
 | Your added and starred quotes | How often they show, from 0% to 100% |
 | Font | Serif and clean fonts, plus cursive and handwritten ones. Each shows in its own style in the list |
 | Lowercase | Shows quotes and authors in lowercase. Your saved quotes keep their capitals, and Copy uses the original |
+| Show authors | On by default. Turn off to show only the quote. Copy still includes the author |
+| Lock position | Off by default. Stops the mouse moving the widget |
 | Also | Text size, monitor, reset position, start with Windows |
 
 Text is centred, and the bubble resizes around each quote while its centre stays put. Dancing Script, Great Vibes, Parisienne and Sacramento come with the app, under the SIL Open Font License (see `font-licenses` next to the app). The other fonts are listed only if they're installed, and some come with Office.

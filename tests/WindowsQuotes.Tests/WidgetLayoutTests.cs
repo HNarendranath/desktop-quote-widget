@@ -2,6 +2,7 @@ using System.IO;
 using System.IO.Packaging;
 using System.Runtime.ExceptionServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WindowsQuotes.Quotes;
@@ -181,6 +182,96 @@ public class WidgetLayoutTests
 
         window.SetStyle(new QuoteStyle(1, QuoteFonts.DefaultName, false));
         Assert.Equal("Know Thyself, O Stranger.", window.QuoteLine.Text);
+    });
+
+    [Fact]
+    public void Authors_can_be_hidden() => OnUiThread(() =>
+    {
+        var quote = new Quote(MediumQuote, "Marcus Aurelius", QuoteOrigin.Mine);
+        var window = new WidgetWindow(WidgetLook.Tinted, WidgetControls.HoverButtons, new QuoteStyle(1, QuoteFonts.DefaultName, false));
+        window.SetQuote(quote, animate: false);
+        Assert.Equal("— Marcus Aurelius", window.AuthorLine.Text);
+        Assert.Equal(Visibility.Visible, window.AuthorLine.Visibility);
+
+        window.SetStyle(new QuoteStyle(1, QuoteFonts.DefaultName, false, ShowAuthor: false));
+        Assert.Equal(string.Empty, window.AuthorLine.Text);
+        Assert.Equal(Visibility.Collapsed, window.AuthorLine.Visibility);
+        Assert.Equal("Marcus Aurelius", quote.Author);
+
+        window.SetStyle(new QuoteStyle(1, QuoteFonts.DefaultName, false));
+        Assert.Equal("— Marcus Aurelius", window.AuthorLine.Text);
+    });
+
+    [Fact]
+    public void Without_an_author_the_bubble_is_shorter_and_still_centred() => OnUiThread(() =>
+    {
+        WidgetWindow Build(bool show)
+        {
+            var window = new WidgetWindow(WidgetLook.Tinted, WidgetControls.HoverButtons, new QuoteStyle(1, "Dancing Script", false, show));
+            window.SetQuote(new Quote(MediumQuote, "Marcus Aurelius", QuoteOrigin.Mine), animate: false);
+            window.Root.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            window.Root.Arrange(new Rect(window.Root.DesiredSize));
+            window.Root.UpdateLayout();
+            return window;
+        }
+
+        var hidden = Build(false).Card;
+        Assert.True(hidden.ActualHeight < Build(true).Card.ActualHeight);
+        var gaps = Gaps(Draw(hidden));
+        Assert.True(Math.Abs(gaps.Top - gaps.Bottom) <= 3, gaps.ToString());
+    });
+
+    private static void PressOnQuote(WidgetWindow window) =>
+        window.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+
+    [Fact]
+    public void Pressing_the_quote_starts_a_drag_only_when_unlocked() => OnUiThread(() =>
+    {
+        var free = Laid(MediumQuote, string.Empty, QuoteFonts.DefaultName);
+        PressOnQuote(free);
+        Assert.True(free.IsPressed);
+
+        var locked = Laid(MediumQuote, string.Empty, QuoteFonts.DefaultName);
+        locked.SetPositionLocked(true);
+        PressOnQuote(locked);
+        Assert.False(locked.IsPressed);
+
+        locked.SetPositionLocked(false);
+        PressOnQuote(locked);
+        Assert.True(locked.IsPressed);
+    });
+
+    /// <summary>How much of the button's icon is solid, from the icon's actual shape.</summary>
+    private static double IconArea(System.Windows.Controls.Button button)
+    {
+        var typeface = new Typeface(button.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        var text = new FormattedText((string)button.Content, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 40, Brushes.White, 1);
+        return text.BuildGeometry(new Point()).GetArea();
+    }
+
+    [Fact]
+    public void Pin_button_is_visibly_filled_while_held() => OnUiThread(() =>
+    {
+        var window = Laid(MediumQuote, string.Empty, QuoteFonts.DefaultName);
+        var button = window.HoldButton;
+
+        window.SetHeld(false);
+        var outline = (string)button.Content;
+        var outlineArea = IconArea(button);
+
+        window.SetHeld(true);
+        var filled = (string)button.Content;
+        var filledArea = IconArea(button);
+
+        var iconFont = new Typeface(button.FontFamily, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        Assert.True(iconFont.TryGetGlyphTypeface(out var glyphs));
+        Assert.True(glyphs.CharacterToGlyphMap.ContainsKey(outline[0]), "the outline pin isn't in the icon font");
+        Assert.True(glyphs.CharacterToGlyphMap.ContainsKey(filled[0]), "the filled pin isn't in the icon font");
+
+        Assert.True(filledArea > outlineArea * 1.3, $"filled {filledArea:0} vs outline {outlineArea:0}");
+
+        window.SetHeld(false);
+        Assert.Equal(outline, (string)button.Content);
     });
 
     [Fact]

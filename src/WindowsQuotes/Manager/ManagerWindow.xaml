@@ -116,11 +116,13 @@
                     <TextBlock x:Name="TextScaleLabel" Margin="0,16,0,4" />
                     <Slider x:Name="TextScaleSlider" Minimum="70" Maximum="160" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OnSliderChanged" />
 
-                    <CheckBox x:Name="LowercaseBox" Content="Show quotes in lowercase" Margin="0,12,0,0" Click="OnLowercaseClicked" />
+                    <CheckBox x:Name="LowercaseBox" Content="Show quotes in lowercase" Margin="0,12,0,0" Click="OnDisplayOptionClicked" />
+                    <CheckBox x:Name="ShowAuthorsBox" Content="Show authors" Margin="0,8,0,0" Click="OnDisplayOptionClicked" />
 
                     <TextBlock Text="Monitor" Margin="0,16,0,4" />
                     <ComboBox x:Name="MonitorBox" SelectionChanged="OnSettingChanged" />
 
+                    <CheckBox x:Name="LockPositionBox" Content="Lock the widget's position, so the mouse can't move it" Margin="0,12,0,0" Click="OnDisplayOptionClicked" />
                     <Button x:Name="ResetPositionButton" Content="Reset widget position" Click="OnResetPosition" Margin="0,12,0,0" HorizontalAlignment="Left" />
 
                     <CheckBox x:Name="StartupBox" Content="Start with Windows" Margin="0,18,0,0" Click="OnStartupClicked" />

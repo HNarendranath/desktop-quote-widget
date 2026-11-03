@@ -95,12 +95,13 @@ internal sealed class WidgetHost : IDisposable
         _window.Moved += SavePosition;
         _window.PlacementForSize = PlacementFor;
         _window.SetQuote(_state.Rotation.Current, animate: false);
+        _window.SetPositionLocked(_settings.PositionLocked);
         _window.SetMoveMode(_moveMode);
         _window.Show();
         PlaceWindow();
     }
 
-    private static QuoteStyle StyleOf(AppSettings settings) => new(settings.TextScale, settings.Font, settings.Lowercase);
+    private static QuoteStyle StyleOf(AppSettings settings) => new(settings.TextScale, settings.Font, settings.Lowercase, settings.ShowAuthors);
 
     private void RecreateWindow()
     {
@@ -269,17 +270,24 @@ internal sealed class WidgetHost : IDisposable
         return entries;
     }
 
-    private List<MenuEntry> TrayMenu() =>
-    [
-        new("Next quote", Next),
-        new("Hold this quote", Children: HoldEntries()),
-        MenuEntry.Separator,
-        new("Add a quote…", () => LaunchManager("--add")),
-        new("Manage quotes and settings…", () => LaunchManager()),
-        new("Move widget", ToggleMoveMode, Checked: _moveMode),
-        MenuEntry.Separator,
-        new("Quit", Quit),
-    ];
+    private List<MenuEntry> TrayMenu()
+    {
+        var entries = new List<MenuEntry>
+        {
+            new("Next quote", Next),
+            new("Hold this quote", Children: HoldEntries()),
+            MenuEntry.Separator,
+            new("Add a quote…", () => LaunchManager("--add")),
+            new("Manage quotes and settings…", () => LaunchManager()),
+        };
+        if (!_settings.PositionLocked)
+        {
+            entries.Add(new MenuEntry("Move widget", ToggleMoveMode, Checked: _moveMode));
+        }
+        entries.Add(MenuEntry.Separator);
+        entries.Add(new MenuEntry("Quit", Quit));
+        return entries;
+    }
 
     private void OnTrayEvent(int mouseMessage)
     {
@@ -340,6 +348,7 @@ internal sealed class WidgetHost : IDisposable
         var previous = _settings;
         _settings = _store.LoadSettings();
         _own = _store.LoadOwnQuotes();
+        _moveMode &= !_settings.PositionLocked;
 
         _rotator.Reschedule(Options, DateTimeOffset.Now);
         ApplyPinRequest();
@@ -358,6 +367,11 @@ internal sealed class WidgetHost : IDisposable
             if (StyleOf(_settings) != StyleOf(previous))
             {
                 _window.SetStyle(StyleOf(_settings));
+            }
+            if (_settings.PositionLocked != previous.PositionLocked)
+            {
+                _window.SetPositionLocked(_settings.PositionLocked);
+                _window.SetMoveMode(_moveMode);
             }
             PlaceWindow();
         }

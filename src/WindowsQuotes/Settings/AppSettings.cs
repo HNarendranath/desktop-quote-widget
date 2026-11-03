@@ -15,7 +15,7 @@ public enum WidgetControls
 }
 
 /// <summary>How quote text is drawn.</summary>
-public sealed record QuoteStyle(double Scale, string Font, bool Lowercase);
+public sealed record QuoteStyle(double Scale, string Font, bool Lowercase, bool ShowAuthor = true);
 
 /// <summary>Where the widget's centre sits, in physical pixels, relative to the monitor's work area.</summary>
 public sealed record WidgetCenter(int X, int Y);
@@ -38,6 +38,12 @@ public sealed class AppSettings
 
     /// <summary>Shows quotes in lowercase. Only the display changes, never the saved quote.</summary>
     public bool Lowercase { get; set; }
+
+    /// <summary>Turn off to show only the quote, even when it has an author.</summary>
+    public bool ShowAuthors { get; set; } = true;
+
+    /// <summary>Stops the mouse moving the widget. Reset position still works.</summary>
+    public bool PositionLocked { get; set; }
 
     /// <summary>Device name of the chosen monitor. Null means the primary monitor.</summary>
     public string? Monitor { get; set; }

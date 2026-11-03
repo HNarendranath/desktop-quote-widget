@@ -29,7 +29,7 @@ public partial class WidgetWindow : Window
     private const int DragThresholdPixels = 4;
 
     private const string PinGlyph = "";
-    private const string PinnedGlyph = "";
+    private const string PinnedGlyph = "";
     private const string StarGlyph = "";
     private const string FilledStarGlyph = "";
 
@@ -42,6 +42,7 @@ public partial class WidgetWindow : Window
     private WidgetControls _controls;
     private QuoteStyle _style;
     private bool _moveMode;
+    private bool _positionLocked;
     private DesktopPinner? _pinner;
     private Quote? _quote;
     private bool _pressed;
@@ -81,6 +82,9 @@ public partial class WidgetWindow : Window
 
     /// <summary>True while the user is dragging, when the widget should go where the mouse goes.</summary>
     public bool IsDragging { get; private set; }
+
+    /// <summary>True between pressing on the quote and letting go, when moving the mouse drags the widget.</summary>
+    internal bool IsPressed => _pressed;
 
     /// <summary>Chooses the position for a new size. See <see cref="DesktopPinner.PlacementForSize"/>.</summary>
     public Func<int, int, (int X, int Y)?>? PlacementForSize { get; set; }
@@ -143,6 +147,8 @@ public partial class WidgetWindow : Window
         ApplyInputMode();
     }
 
+    public void SetPositionLocked(bool locked) => _positionLocked = locked;
+
     public void SetMoveMode(bool enabled)
     {
         _moveMode = enabled;
@@ -171,7 +177,7 @@ public partial class WidgetWindow : Window
     private void ApplyText()
     {
         var text = ForDisplay(_quote?.Text);
-        var author = ForDisplay(_quote?.Author);
+        var author = _style.ShowAuthor ? ForDisplay(_quote?.Author) : string.Empty;
         if (author.Length > 0)
         {
             author = $"— {author}";
@@ -255,6 +261,11 @@ public partial class WidgetWindow : Window
 
     private void OnLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (_positionLocked)
+        {
+            return;
+        }
+
         // Buttons handle their own clicks, so this is a press on the quote itself.
         _pressed = true;
         _pressCursor = WindowGeometry.Cursor();

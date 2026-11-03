@@ -46,6 +46,8 @@ public sealed class StyleSettingsTests : IDisposable
         var settings = new DataStore(_directory).LoadSettings();
         Assert.Equal(QuoteFonts.DefaultName, settings.Font);
         Assert.False(settings.Lowercase);
+        Assert.True(settings.ShowAuthors);
+        Assert.False(settings.PositionLocked);
         Assert.Equal(1.2, settings.TextScale);
     }
 
@@ -76,6 +78,28 @@ public sealed class StyleSettingsTests : IDisposable
 
         var reopened = new ManagerWindow(store, focusAddQuote: false);
         Assert.True(reopened.LowercaseBox.IsChecked);
+    });
+
+    [Fact]
+    public void Show_authors_and_lock_position_save_from_the_manager() => OnUiThread(() =>
+    {
+        var store = new DataStore(_directory);
+        var manager = new ManagerWindow(store, focusAddQuote: false);
+        Assert.True(manager.ShowAuthorsBox.IsChecked);
+        Assert.False(manager.LockPositionBox.IsChecked);
+
+        manager.ShowAuthorsBox.IsChecked = false;
+        manager.ShowAuthorsBox.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        manager.LockPositionBox.IsChecked = true;
+        manager.LockPositionBox.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+
+        var saved = store.LoadSettings();
+        Assert.False(saved.ShowAuthors);
+        Assert.True(saved.PositionLocked);
+
+        var reopened = new ManagerWindow(store, focusAddQuote: false);
+        Assert.False(reopened.ShowAuthorsBox.IsChecked);
+        Assert.True(reopened.LockPositionBox.IsChecked);
     });
 
     [Fact]

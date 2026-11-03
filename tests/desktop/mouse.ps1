@@ -104,6 +104,7 @@ foreach ($look in 'BareText','Frosted') {
       [M]::PostMessage($menu,0x100,[IntPtr]0x0D,[IntPtr]0) | Out-Null; Start-Sleep -Milliseconds 700  # Enter: For 1 hour
       $st = ([IO.File]::ReadAllText("$d\state.json",[Text.Encoding]::UTF8) | ConvertFrom-Json).rotation
       Check "choosing a hold duration holds the quote" ($st.held -and ([DateTimeOffset]$st.heldUntil -gt (Get-Date).AddMinutes(50)))
+      Check "pin button is filled while held" ((Button $h 'HoldButton').Current.Name -eq [string][char]0xE842)
     }
     Check "focus is back where it started" ([M]::GetForegroundWindow() -eq $fg)
 
@@ -117,6 +118,25 @@ foreach ($look in 'BareText','Frosted') {
     if (Test-Path "$d\error.log") { "ERROR LOG:"; Get-Content "$d\error.log" | Select-Object -First 8; $script:fail++ }
   } finally { if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force } }
 }
+
+"--- Locked position"
+$d = Join-Path $Root "mouse-locked"; if (Test-Path $d) { Remove-Item $d -Recurse -Force }; New-Item -ItemType Directory $d | Out-Null
+[IO.File]::WriteAllText("$d\settings.json",'{"positionLocked":true,"ownShare":0}',$utf8)
+[IO.File]::WriteAllText("$d\cache.json",'[{"text":"A locked quote that should stay exactly where it is.","author":"An Author","source":"zenquotes"},{"text":"Another online quote.","author":"Other","source":"zenquotes"}]',$utf8)
+[IO.File]::WriteAllText("$d\state.json",'{"rotation":{"nextChangeAt":"' + $future + '","seen":[]},"sources":{' + $quiet + '}}',$utf8)
+$p = Start-Process -FilePath $Exe -ArgumentList '--debug-float','--data-dir',$d -PassThru
+try {
+  Start-Sleep -Seconds 3
+  $h = Hwnd $p.Id
+  $r0 = Rect $h
+  Drag ([int]($r0.L+($r0.R-$r0.L)*0.3)) ([int]($r0.T+($r0.B-$r0.T)*0.25)) -300 -200
+  $r1 = Rect $h
+  Check "dragging doesn't move a locked widget" (($r1.L -eq $r0.L) -and ($r1.T -eq $r0.T)) "moved $($r1.L-$r0.L),$($r1.T-$r0.T)"
+  $before = ([IO.File]::ReadAllText("$d\state.json",[Text.Encoding]::UTF8) | ConvertFrom-Json).rotation.current.text
+  ClickButton $h 'NextButton'; Start-Sleep -Milliseconds 500
+  $after = ([IO.File]::ReadAllText("$d\state.json",[Text.Encoding]::UTF8) | ConvertFrom-Json).rotation.current.text
+  Check "buttons still work while locked" ($before -ne $after)
+} finally { if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force } }
 } finally {
   # Always let go of the button and put the cursor back, even if a step above failed.
   [M]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
